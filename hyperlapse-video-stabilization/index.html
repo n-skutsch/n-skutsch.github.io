@@ -1,0 +1,454 @@
+<!doctype html><html class="no-js"><head><meta charset="utf-8"><title>Hyperlapse Video Stabilization</title><meta name="description" content=""><meta name="viewport" content="width=device-width">
+
+<link href="http://fonts.googleapis.com/css?family=Raleway:300,400,600" rel="stylesheet" type="text/css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<body>
+
+<div class="container">
+
+    <nav class="navbar">
+        <div class="container">
+            <ul class="navbar-list">
+                <li class="navbar-item">
+                    <a class="navbar-link" href="#motivation">Motivation</a>
+                </li>
+                <li class="navbar-item">
+                    <a class="navbar-link" href="#approach">Approach</a>
+                </li>
+                <li class="navbar-item">
+                    <a class="navbar-link" href="#results">Results</a>
+                </li>
+                <li class="navbar-item">
+                    <a class="navbar-link" href="#problems_and_challenges">Problems and Challenges</a>
+                </li>
+                <li class="navbar-item">
+                    <a class="navbar-link" href="#future_work">Future Work</a>
+                </li>
+                <li class="navbar-item">
+                    <a class="navbar-link" href="#references">References</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <section class="header" id="intro">
+
+        <h2 class="title">Video Stabilization of Hyperlapse Videos</h2>
+
+        <h6>Project by Nicolai Skutsch (<a href="mailto:n.skutsch@tu-berlin.de">n.skutsch@tu-berlin.de</a>)</h6>
+
+        <div class="row">
+            <img class="u-max-full-width" src="images/banner.jpg">
+            <p>In their paper <i>Deep Iterative Frame Interpolation for Full-frame Video Stabilization</i> <a href="#reference_1">[1]</a> J. Choi and I. S. Kweon proposed a novel approach on video stabilization using a pipeline consisting of multiple neural networks. If this method is applied to stabilize hyperlapse videos though, the results are not as good as expected. In this project, I therefore propose two new ways of creating and stabilizing hyperlapse videos by adapting the original approach from the paper.</p>
+        </div>
+
+    </section>
+
+    <div class="docs-section" id="motivation">
+
+        <h3 class="section-heading">Motivation</h3>
+
+        <p>Videos captured from the point of view (POV) of the photographer by using a handheld camera are getting more and more popular for content creators in the internet and tourists to capture their own travel to another country. Filming while being in motion often leads to shaky footages which are not pleasant to watch though. Since modern technology allows capturing multiple hour long videos it becomes a popular choice to summarize all important information in a shorter video, for example a hyperlapse of the original video. These hyperlapse videos are mostly created by selecting key frames from the original video and joining those frames to a single video. For example, if the video should be speeded-up by the factor 6, every sixth frame is selected as key frame and all key frames are joined together to create the hyperlapse video. This approach comes with a problem though. If the oiginal video already contains jitter, the jitter in the hyperlapse will have a higher frequency which makes the video look even more shaky. This is also shown in the figures below.</p>
+
+        <div class="row">
+            <div class="one-half column category" style="text-align: center;">
+                <img class="u-max-full-width" src="images/jitter_pov.png">
+            </div>
+            <div class="one-half column category" style="text-align: center;">
+                <img class="u-max-full-width" src="images/jitter_pov_hyperlapse.png">
+            </div>
+        </div>
+        <p></p>
+
+        <p>The first graph shows the spatial jitter of the first 20 frames of an example video. The second graph shows the spatial jitter of the first 20 frames of the hyperlapse version of the same example video. It can clearly be seen that the frequency of the jitter is increased significantly in the hyperlapse version of the video because in that case only every fifth frame is used. Therefore, video stabilization is a highly desired approach to so minimize jitter in videos especially for hyperlapse videos.</p>
+
+        <p>Since they usually show better results, most approaches apply video stabilization as offline post-processing step. For that, state of the art deep neural networks <a href="#reference_10">[10]</a><a href="#reference_11">[11]</a><a href="#reference_12">[12]</a> can be used. These are trained in a supervised manner by receiving an unstable and a stable video of the same scene and then learn how to create the stable video from the unstable data. Therefore, most approaches correct for the shaky camera movement and then crop the frame boundaries due to missing content. Other approaches additionally model the camera trajectory and then use a virtual camera with a stabilized path which also requires cropping at the frame boundaries though.</p>
+
+        <p>The paper this project is based on suggests a deep learning approach that works without cropping at the image borders and without having stable ground truth data so it can be trained in an unsupervised manner. In this project, the network from the paper is adapted to create a novel approach on video stabilization of hyperlapse videos.</p>
+
+    </div>
+
+
+    <div class="docs-section" id="approach">
+
+        <h3 class="section-heading">Approach</h3>
+
+        <p>The general idea of this appraoch is to stabilize the video by interpolating between two frames to create a new frame that does not contain the jitter of the original frame. The concept is described in more detail in the following figure.</p>
+
+        <div class="row" style="text-align: center;">
+            <img class="u-max-full-width" src="images/approach_orig_interpolation.png">
+        </div>
+        <p></p>
+
+        <p>The first line represents the single frames of the input video. In this example, stabilization is applied between the frames \(f_{i-1}\) and \(f_{i+1}\) which results in a new middle frame \(\hat{f}_{i}^{1}\) and would therefore compensate for unwanted movement in the original middle frame \(f_{i}\). This gets repeated for every frame pair \(f_{x-1}\) and \(f_{x+1}\) until the full set of frames has been interpolated. This method can then be applied iteratively to the already interpolated frames to further increase the visual stability. In the second iteration for example, the already interpolated frames \(\hat{f}_{i-1}^{1}\) and \(\hat{f}_{i+1}^{1}\) are used to create a new middle frame \(\hat{f}_{i}^{2}\).</p>
+
+        <h5>Previous Approach</h5>
+
+        <p>For interpolating between the frames, a pipeline of neural networks is used. The structure of the whole network during training as presented in the paper is shown in the following figure.</p>
+
+        <div class="row" style="text-align: center;">
+            <img class="u-max-full-width" src="images/approach_orig_training.png">
+        </div>
+        <p></p>
+
+        <p>The network receives three frames \(f_{i-1}\), \(f_{s}\), and \(f_{i+1}\) as input and is trained to reconstruct a new stabilized middle frame \(\hat{f}_{i}\) from that input. \(f_{i-1}\) and \(f_{i+1}\) are the original frames next to the old middle frame \(f_{i}\) as described earlier. \(f_{s}\) is a pseudo ground truth frame which is a spatially translated version of \(f_{i}\) by a small random factor in a random direction. It is used because a real ground truth middle frame does not exist.</p>
+
+        <p>In the first step, the frames \(f_{i-1}\) and \(f_{i+1}\) are each warped towards the pseudo ground truth frame \(f_{s}\) by the pre-trained network FlowNet <a href="#reference_2">[2]</a><a href="#reference_3">[3]</a> resulting in two warped frames \(f_{w}^{-}\) and \(f_{w}^{+}\). These are then used as input for the first trainable network in the pipeline: a U-Net <a href="#reference_13">[13]</a> which is trained to reconstruct \(f_{s}\) given the two warped frames as input. Since the result of the U-Net \(f_{int}\) tends to be blurry, another network is used to refine the textures. Therefore, the original middle frame \(f_{i}\) is warped towards the result of the U-Net \(f_{int}\). Then the warped frame and \(f_{int}\) are used as an input for the second trainable network in the pipeline: a ResNet <a href="#reference_14">[14]</a> which is also trained to reconstruct \(f_{s}\). This results in the final interpolated frame \(\hat{f}_{i}\) which can then be further interpolated in multiple stabilization iterations. The impact of the ResNet can be seen in the following figure.</p>
+
+        <div class="row" style="text-align: center;">
+            <img class="u-max-full-width" src="images/approach_orig_resnet.png">
+        </div>
+        <p></p>
+
+        <p>The window highlighted in red shows the texture the U-Net produces during stabilization. The window highlighted in blue shows the texture of the same frame after being processed by the ResNet. It can clearly be seen that the textures look more refined and sharp.</p>
+
+        <p>As suggested in the paper, this network is then trained at least 200 epochs on multiple video sequences. As dataset, the DAVIS dataset <a href="#reference_5">[5]</a> has been used. As loss function, the U-Net and the ResNet part of the network both use a combination of the \(l_{1}\) loss and the perceputal loss <a href="#reference_16">[16]</a>. The final loss is defined by their unweighted sum.
+
+        \[Loss = \Big|\Big| f_{s} - \hat{f}_{i} \Big|\Big|_{1} + \Big|\Big| \phi(f_{s}) - \phi(\hat{f}_{i}) \Big|\Big|_{2}^{2}\]</p>
+
+        <p>After the network has been trained, it can be used for video stabilization. Therefore, the pipeline is slightly changed. The testing pipeline is shown in more detail in the following figure.</p>
+
+        <div class="row" style="text-align: center;">
+            <img class="u-max-full-width" src="images/approach_orig_testing.png">
+        </div>
+        <p></p>
+
+        <p>For testing, a pseudo ground truth frame \(f_{s}\) is no longer needed. Instead of warping the frames \(f_{i-1}\) and \(f_{i+1}\) towards \(f_{s}\), they are now warped halfway towards each other. These two warping results \(f_{w}^{-}\) and \(f_{w}^{+}\) are then used as in the training pipeline. The final stabilzed result is the output of the ResNet. If applied to hyperlapse videos, the network only takes the key frames as an input and creates stabilized key frames.</p>
+
+        <h5>Modified Approach</h5>
+
+        <p>Since only using the key frames as input for the network does not use the data of the non-key frames at all, two novel approaches are presented in this project: an iterative and a batch-wise approach which both use the additional information of the non-key frames to improve the stabilization result. When using more frames in between the two key frames, the network has more texture information which it can use to further refine the texture.</p>
+
+        <h6>Iterative Approach</h6>
+
+        <p>For the iterative approach, all non-key frames are used to train and evaluate the ResNet part of the network iteratively. The new structure of the network can be seen in the following figure (only showing the training pipeline since the ResNet part is the same for both training and testing pipeline).</p>
+
+        <div class="row" style="text-align: center;">
+            <img class="u-max-full-width" src="images/approach_new_iterative.png">
+        </div>
+        <p></p>
+
+        <p>For a speed-up of 6 there are eleven different frames between \(f_{i-1}\) and \(f_{i+1}\). In each iteration, the next of those eleven frames is used as \(f_{i}\) for training the ResNet. The output of the ResNet is then looped back to replace the previous \(f_{int}\) and then the next iteration is started. After each iteration, the loss is calculated and the parameters of the network are adjusted. The advantage of training the network iteratively is that the speed-up is variable because the number of non-key frames can differ. It is therefore possible to train the network with a speed-up of 6 but use it for stabilizing videos with a speed-up of 2.</p>
+
+        <h6>Batch-wise Approach</h6>
+
+        <p>For the batch-wise approach, all non-key frames are used at once to train and evaluate the ResNet part of the network in one batch. The new structure of the network can be seen in the following figure (only showing the training pipeline since the ResNet part is the same for both training and testing pipeline).</p>
+
+        <div class="row" style="text-align: center;">
+            <img class="u-max-full-width" src="images/approach_new_batch.png">
+        </div>
+        <p></p>
+
+        <p>For a speed-up of 6 there are eleven different frames between \(f_{i-1}\) and \(f_{i+1}\). These eleven frames are all used as input to the FlowNet separately, the results of the FlowNet are then concatenated and the the whole batch of warped frames is used as input for the ResNet. The advantage of training the network batch-wise is that the training is faster than for the iterative approach and the loss only needs to be propagated once through the network. On the other hand, the speed-up for the batch approach is already defined and fixed by the architecture, since the input dimensions and number of features change with the number of non-key frames.
+
+        <h6>Improved Key Frame Selection</h6>
+
+        <p>Another advantage of the iterative approach is that the key frame selection can be improved since the number of non-key frames does not need to be the same for each frame pair \(f_{i-1}\) and \(f_{i+1}\). That is why it was also possible to test an improved key frame selection approach <a href="#reference_4">[4]</a> combined with the iterative approach during stabilization/testing. The improved key frame selection is based on the homography between frames in a certain neighborhood. The approach selects the frames based on the homographies and the speed-up, so that it minimizes the jitter/translation between the frames. For a speed-up of 6, this approach might not select frames 1, 7, 13, 19, and 25 as the naiv approach would, but for example frames 1, 6, 14, 21, and 26 to reduce the inital jitter. This selection is based on the cost of the translation between frames and a penalty for not sticking to the desired speed-up. If the initial key frames are already more stable, the stabilization result will also be more stable as shown in the next section.</p>
+
+    </div>
+
+
+    <div class="docs-section" id="results">
+
+        <h3 class="section-heading">Results</h3>
+
+        <p>To evaluate the results, the different approaches have been tested on four diffent videos. These video differ in the kind movement of the photographer, the resulting motion of the camera, and the kind of scenery that has been filmed. All of them are taken from the point of view of the photographer. The exact videos that have been used can be seen below.</p>
+
+        <div class="row">
+            <div class="one-half column category" style="text-align: center;">
+                <h5 class="docs-header">Bike Ride (Park)</h5>
+                <video class="u-max-full-width" controls>
+                    <source src="videos/bike_cut.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <p></p>
+                <h5 class="docs-header">Bike Ride (Downhill)</h5>
+                <video class="u-max-full-width" controls>
+                    <source src="videos/downhill_cut.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="one-half column category" style="text-align: center;">
+                <h5 class="docs-header">Walk (Park)</h5>
+                <video class="u-max-full-width" controls>
+                    <source src="videos/walk_cut.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <p></p>
+                <h5 class="docs-header">Walk (Hallway)</h5>
+                <video class="u-max-full-width" controls>
+                    <source src="videos/hallway_cut.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        </div>
+        <p></p>
+
+        <p>The first video <a href="#reference_8">[8]</a> was taken while riding a bike and therefore the motion is of the camera is quick. It shows the trail through a park going past a fountain. The second video <a href="#reference_8">[8]</a> was captured while going for a walk which is why the motion is slower compared to the first video. It shows the road through a park near a lake. The third video was taken while riding a mountain bike downhill  <a href="#reference_15">[15]</a> and is therefore very shaky with a lot of movement. It mainly shows a stony path down a hill or mountain. The fourth video <a href="#reference_9">[9]</a> was captured while slowly walking which is why the original video is already quiet stable. It shows the hallway inside a building.</p>
+
+        <h5>Qualitative Results</h5>
+
+        <p>Firstly, the different approaches are compared visually using the hallway video. For all approaches, the video has been stabilized for one iteration with a speed-up by factor 6 and a skip factor of 0. For the naiv approach, only the key frames have been used as input whereas for the the novel approaches the non-key frames have been used additionally to the key frames for texture refinements. The results can be seen below.</p>
+
+        <div class="row" style="text-align: center;">
+            <div class="one-half column category" style="text-align: center;">
+                <h5 class="docs-header">Original</h5>
+                <video class="u-max-full-width" controls>
+                    <source src="videos/hallway_cut.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <p></p>
+                <h5 class="docs-header">Naiv</h5>
+                <video class="u-max-full-width" controls>
+                    <source src="videos/hallway_cut_naiv.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <p></p>
+                <h5 class="docs-header">Batch-wise</h5>
+                <video class="u-max-full-width" controls>
+                    <source src="videos/hallway_cut_batch.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="one-half column category" style="text-align: center;">
+                <h5 class="docs-header">Hyperlapse</h5>
+                <video class="u-max-full-width" controls>
+                    <source src="videos/hallway_cut_key.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <p></p>
+                <h5 class="docs-header">Iterative</h5>
+                <video class="u-max-full-width" controls>
+                    <source src="videos/hallway_cut_iterative.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <p></p>
+                <h5 class="docs-header">Iterative + Improved Key Frame Selection</h5>
+                <video class="u-max-full-width" controls>
+                    <source src="videos/hallway_cut_iterative_improved.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        </div>
+        <p></p>
+
+        <p>The first video is the original video which was used as an input for the newly trained approaches without any stabilization applied to it. The second video is also the original unstabilzed version but speeded-up by the factor 6 creating a hyperlapse version of the original video. To get a baseline to compare the new approaches with, the third video is the result of the original network from the paper applied to only the key frames so the hyperlapse version of the input video. The result of the iterative approach is shown in the fourth video and the result of the batch-wise approach in the fifth video. The sixth video is the result of the iterative approach with improved key frame selection.</p>
+
+        <p>It can be seen that the original video is already a bit shaky since the photographer is moving and the camera equipment was not stabilized. The jitter produced by each step can clearly be noticed. Speeding-up the video increases the frequency of the jitter. Therefore, the hyperlapse version of the video seems even more unstable and shaky then the version in real-time. Although the camera path in the result of the naiv approach seems a bit more stable, a small amount of jitter can still be seen. This jitter gets even less when looking at the results of the iterative and batch-wise approach, which are very similar. Adding the improved key frame selection to the iterative approach does further increase the stability compared to even the iterative or batch-wise approach and produces the best result.</p>
+
+        <p>Besides the different degree of stability of the results it can be observed that all approaches create artifacts and change the overall color of the frames. These aspects are further discussed in the section <a href="#problems_and_challenges">Problems and Challenges</a>.</p>
+
+        <h5>Quantitative Results</h5>
+
+        <p>Secondly, the different approaches are compared based on different stability metrics <a href="#reference_6">[6]</a><a href="#reference_7">[7]</a>. These metrics are a measure of the similarity between the content of two neighboring frame, and the transformation necessary to match one frame with its neighboring frames. The metrics that have been used are now described in more detail.</p>
+
+        <h6>Peak Signal-to-Noise Ratio (PSNR)</h6>
+        <p>A simple and widely used metric is the peak signal-to-noise ratio (PSNR). It is defined by the ratio between the mean and the variance of a signal. For two neighboring frames, the PSNR is calculted by converting the colored images to a monochrom images, calculate the mean squared error pixel-wise, and then set it into relation with the maximum possible intensity values. The exact formula for the PSNR between the frames \(F_{1}\) and \(F_{2}\) of width \(w\), height \(h\), and the maximum intensity \(MAX\) is shown below.
+
+        \[\mathrm{MSE}(F_{1},F_{2}) = \frac{1}{w \cdot h} \sum_{x=0}^{w-1} \sum_{y=0}^{h-1} \big( F_{1}(x,y) - F_{2}(x,y) \big)^{2}\]
+        \[\mathrm{PSNR}(F_{1},F_{2}) = 10 \cdot \log_{10} \Bigg( \frac{MAX^{2}}{\mathrm{MSE}(F_{1},F_{2})} \Bigg)\]</p>
+
+        <h6>Structural Similarity (SSIM)</h6>
+        <p>It has been observed that the PSNR does not match the perceived visual quality very well. That is why the structural similarity (SSIM) metric has been introduced. It compares local patterns of pixel intensities between two images and normalizes for luminance and contrast. The metric is applied window-wise and considers luminance, contrast, and structure of the images. The exact formula for the SSIM between the frames \(F_{1}\) and \(F_{2}\) using two constants \(c_{1}\) and \(c_{2}\) is shown below.
+
+        \[\mathrm{SSIM}(F_{1},F_{2}) = \frac{(2\mu_{F_{1}}\mu_{F_{2}} + c_{1}) (2\sigma_{F_{1}F_{2}} + c_{2})}{(\mu_{F_{1}}^{2} + \mu_{F_{2}}^{2} + c_{1}) (\sigma_{F_{1}}^{2} + \sigma_{F_{2}}^{2} + c_{2})}\]</p>
+
+        <h6>Learned Perceptual Image Patch Similarity (LPIPS)</h6>
+        <p>Since the perception of humans is often still not represented well enough by these metrics, the learned perceptual image patch similarity (LPIPS) loss as been proposed. Therefore, a deep neural network is used to evaluate how similar two images look like. In this project AlexNet is used since it is trained to extract complex visual features from images.</p>
+
+        <h6>Stability</h6>
+        <p>The previously introduced metrics only compare the content of two frames directly to each other. For the stability metric (instead of comparing the images pixel-wise) a homography between two neighboring frames is calculated to evaluate how much the camera position has changed. The more transformation is necessary to transform one frame into its neighboring frame (represented by the homography), the less stable the video is.</p>
+
+        <p>For all approaches, all test videos have been stabilized for one iteration with a speed-up by factor 6 and a skip factor of 0. For the naiv approach, only the key frames have been used as input whereas for the the novel approaches the non-key frames have been used additionally to the key frames for texture refinements. For each approach, the metrics have been calculated on each video and then averaged to get a final score for this approach. For the PSNR, SSIM, and stability higher scores are better whereas for the LPIPS lower scores are better. The results can be seen below.</p>
+
+        <div class="row" style="text-align: center;">
+            <table class="u-full-width">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>PSNR \((\uparrow)\)</th>
+                        <th>SSIM \((\uparrow)\)</th>
+                        <th>LPIPS \((\downarrow)\)</th>
+                        <th>Stability \((\uparrow)\)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>Original</th>
+                        <th>15.338</th>
+                        <th>0.418</th>
+                        <th>0.406</th>
+                        <th>0.756</th>
+                    </tr>
+                    <tr>
+                        <th>Naiv</th>
+                        <th>16.411</th>
+                        <th>0.468</th>
+                        <th>0.409</th>
+                        <th>0.755</th>
+                    </tr>
+                    <tr>
+                        <th>Iterative</th>
+                        <th>18.645</th>
+                        <th>0.572</th>
+                        <th>0.351</th>
+                        <th>0.799</th>
+                    </tr>
+                    <tr>
+                        <th>Batch-wise</th>
+                        <th>18.297</th>
+                        <th>0.534</th>
+                        <th>0.383</th>
+                        <th>0.746</th>
+                    </tr>
+                    <tr>
+                        <th>Iterative + Improved Key Frame Selection</th>
+                        <th>20.270</th>
+                        <th>0.632</th>
+                        <th>0.286</th>
+                        <th>0.770</th>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p></p>
+
+        <p>The results show that the hyperlapse videos stabilized by the original network from the paper (naiv approach) are only slightly more stable than the original video. The iterative and batch-wise approach though clearly outperform the naiv approach with the iterative approach performing a little better. Adding the improved key frame selection to the iterative approach does increase the performance even more as it could already be seen for the hallway example in the previous section. Removing the video of the biker riding downhill even increases the difference in performance between the original approach and the novel approaches. That indicates the methods all perform better on videos with less movement which makes the difference between the performance of the approaches more noticeable.</p>
+
+        <p>However, these results are not always represented well by the stability metric. This may be caused by errors in the implementation of this metric which was already implemented by the authors of the paper. A variance in the score can also occur when two frames cannot be matched or the calculation of a homography between two frames fails.</p>
+
+        <h5>Summary</h5>
+
+        <p>All in all, the novel approaches presented in this project did improve the results compared to the originally proposed network if applied to hyperlapse videos. Comparing the novel approaches which each other, the iterative approach performs better than the batch-wise approach, especially when considering that once the network is trained on one speed-up it can be used to evaluate multiple speed-ups, and that improved key frame selection can be added to it.</p>
+
+    </div>
+
+
+    <div class="docs-section" id="problems_and_challenges">
+
+        <h3 class="section-heading">Problems and Challenges</h3>
+
+        <p>During the work on this project, many problems and challenges have been encountered. Since the authors did not provide their training script, it needed to be written from scratch. Furthermore, the training process was also not described well enough to reconstruct the original training procedures with all its parameters. That is why a lot of parameters had to be tuned to achieve comparable results.</p>
+
+        <p>After finishing the training script, the training time was much higher than described in the paper. This problem could be solved by replacing the function <code>extract_patches_2d</code> from the <code>sklearn</code> module, which was used for extracting a patch of a certain size from the image, with a self-written function using <code>numpy</code>.</p>
+
+        <p>Training the network iteratively worked quiet fast but the batch-wise approach did only produce black frames at the beginning. Varying the learning rate or changing the number of features did not solve the problem. The network did produce reasonable results though after changing the input of the first layer of the ResNet and increasing the batch-size though. Instead of using the whole output of the FlowNet (which warps the images towards each other) only using the warping result works for the batch-wise approach.</p>
+
+        <p>After both approaches did work, the results could be compared. As mentioned in the previous section though, the results contain some artifacts and are not colored correctly. These problems are addressed in more detail in the following.</p>
+
+        <h5>Artifacts</h5>
+
+        <p>As mentioned in the paper, the original approach already produces artifacts while stabilizing videos. These artifacts mostly appear at the image borders and can be described as blurred texture. It can be observed that these artifacts appear more often if the camera movement is faster and therefore less image content matches across neighboring frames. This also applies to sudden and quick camera movements. In these cases, not only the image borders are blurred but the the artifacts may appear across the whole image. Two neagtive examples of the artifacts are shown below.</p>
+
+        <div class="row">
+            <div class="one-half column category" style="text-align: center;">
+                <h5 class="docs-header">Original</h5>
+                <img class="u-max-full-width" src="images/artifacts_ex1_orig.png">
+                <img class="u-max-full-width" src="images/artifacts_ex2_orig.png">
+            </div>
+            <div class="one-half column category" style="text-align: center;">
+                <h5 class="docs-header">Stabilized</h5>
+                <img class="u-max-full-width" src="images/artifacts_ex1_result.png">
+                <img class="u-max-full-width" src="images/artifacts_ex2_result.png">
+            </div>
+        </div>
+        <p></p>
+
+        <p>The images show the original frame on the left and the frame at the same time of the video after stabilization has been applied on the right. At these moments in the videos, the movement of the camera was very fast. That is why it was hard for the network to reconstruct a realistic looking middle frame. This results in a lot of artifacts all over the image.</p>
+
+        <h5>Color Accuracy</h5>
+
+        <p>Besides the artifacts in the results, the network was not able to reconstruct the correct color of the images. The wrong coloring is dependent on the trained network and therefore different input videos are all colored wrongly in the same way. If a network is trained with different hyperparamters, the coloring does change. The concrete cause for this problem could not be found yet. Two neagtive examples of the wrong coloring are shown below.</p>
+
+        <div class="row">
+            <div class="one-half column category" style="text-align: center;">
+                <h5 class="docs-header">Original</h5>
+                <img class="u-max-full-width" src="images/color_ex1_orig.png">
+                <img class="u-max-full-width" src="images/color_ex2_orig.png">
+
+            </div>
+            <div class="one-half column category" style="text-align: center;">
+                <h5 class="docs-header">Stabilized</h5>
+                <img class="u-max-full-width" src="images/color_ex1_result.png">
+                <img class="u-max-full-width" src="images/color_ex2_result.png">
+            </div>
+        </div>
+        <p></p>
+
+        <p>The images show the original frame on the left and the frame at the same time of the video after stabilization has been applied on the right. It can be seen that the stabilized frame looks more brownish overall and almost does not contain the color green anymore. It can further be noticed that the frames from two different videos are wrongly colored in the same way though.</p>
+
+    </div>
+    
+
+    <div class="docs-section" id="future_work">
+
+        <h3 class="section-heading">Future Work</h3>
+
+        <p>To be able to generate statisfying results, first of all the issues mentioned in the previous section need to be fixed, namely the artifacts and the wrong coloring. The artifacts might be reduced by replacing the ResNet with another neural network or different approach which performs a similar task. Another possible approach would be increasing the training dataset since the DAVIS dataset only contains a small amount of short videos. Since the cause of the coloring problem could still not be identified, a proposal on how to solve this problem cannot be made. The assumption is made that the network falls into a certain state after the first iterations which it cannot leave and determines the balance of colors in the image because it has been observed that already the first results of the network are colored in the way the final results are.</p>
+
+        <p>If these problems are solved, the project could be further extended by only selecting specific non-key frames which would improve the result to increase the performance of the network. Another approach of improving the whole network would be to replace some of its components by networks that might be more suitable.</p>
+
+        <p>If you have any questions regarding my work on this project or want to discuss further improvements, do not hesitate to contact me via e-mail: <a href="mailto:n.skutsch@tu-berlin.de">n.skutsch@tu-berlin.de</a>.</p>
+    </div>
+
+
+    <div class="docs-section" id="references">
+
+        <h3 class="section-heading">References</h3>
+
+        <ul class="popover-list">
+            <li class="popover-item" id="reference_1">
+                Choi, J., & Kweon, I. S. (2019, October). DIFRINT: Deep Iterative Frame Interpolation for Full-Frame Video Stabilization. In <i>2019 IEEE/CVF International Conference on Computer Vision Workshop (ICCVW)</i> (pp. 3732-3736). IEEE.
+            </li>
+            <li class="popover-item" id="reference_2">
+                Ilg, E., Mayer, N., Saikia, T., Keuper, M., Dosovitskiy, A., & Brox, T. (2017). Flownet 2.0: Evolution of Optical Flow Estimation with Deep Networks. In <i>Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition</i> (pp. 2462-2470).
+            </li>
+            <li class="popover-item" id="reference_3">
+                Sun, D., Yang, X., Liu, M. Y., & Kautz, J. (2018). PWC-Net: CNNs for Optical Flow using Pyramid, Warping, and Cost Volume. In <i>Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition</i> (pp. 8934-8943).
+            </li>
+            <li class="popover-item" id="reference_4">
+                Joshi, N., Kienzle, W., Toelle, M., Uyttendaele, M., & Cohen, M. F. (2015). Real-time Hyperlapse Creation via Optimal Frame Selection. ACM Transactions on Graphics (TOG), 34(4), 1-9.
+            </li>
+            <li class="popover-item" id="reference_5">
+                Caelles, S., Pont-Tuset, J., Perazzi, F., Montes, A., Maninis, K. K., & Van Gool, L. (2019). The 2019 Davis Challenge on VOS: Unsupervised Multi-object Segmentation. <i>arXiv preprint arXiv:1905.00737</i>.
+            </li>
+            <li class="popover-item" id="reference_6">
+                Wang, Z., Bovik, A. C., Sheikh, H. R., & Simoncelli, E. P. (2004). Image Quality Assessment: From Error Visibility to Structural Similarity. <i>IEEE Transactions on Image Processing, 13(4)</i>, 600-612.
+            </li>
+            <li class="popover-item" id="reference_7">
+                Zhang, R., Isola, P., Efros, A. A., Shechtman, E., & Wang, O. (2018). The Unreasonable Effectiveness of Deep Features as a Perceptual Metric. In <i>Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition</i> (pp. 586-595).
+            </li>
+            <li class="popover-item" id="reference_8">
+                Kopf, J., Cohen, M. F., & Szeliski, R. (2014). First-person Hyper-lapse Videos. <i>ACM Transactions on Graphics (TOG), 33(4)</i>, 1-10.
+            </li>
+            <li class="popover-item" id="reference_9">
+                Silva, M. M., Ramos, W. L. S., Ferreira, J. P. K., Campos, M. F. M., & Nascimento, E. R. (2016, October). Towards Semantic Fast-forward and Stabilized Egocentric Videos. In <i>European Conference on Computer Vision</i> (pp. 557-571). Springer, Cham.
+            </li>
+            <li class="popover-item" id="reference_10">
+                Liu, F., Gleicher, M., Jin, H., & Agarwala, A. (2009). Content-preserving Warps for 3D Video Stabilization. <i>ACM Transactions on Graphics (ToG), 28(3)</i>, 1-9.
+            </li>
+            <li class="popover-item" id="reference_11">
+                Gleicher, M. L., & Liu, F. (2007, September). Re-cinematography: Improving the Camera Dynamics of Casual Video. In <i>Proceedings of the 15th ACM International Conference on Multimedia</i> (pp. 27-36).
+            </li>
+            <li class="popover-item" id="reference_12">
+                Wang, M., Yang, G. Y., Lin, J. K., Zhang, S. H., Shamir, A., Lu, S. P., & Hu, S. M. (2018). Deep Online Video Stabilization with Multi-grid Warping Transformation Learning. <i>IEEE Transactions on Image Processing, 28(5)</i>, 2283-2292.
+            </li>
+            <li class="popover-item" id="reference_13">
+                Ronneberger, O., Fischer, P., & Brox, T. (2015, October). U-Net: Convolutional Networks for Biomedical Image Segmentation. In <i>International Conference on Medical Image Computing and Computer-assisted Intervention (pp. 234-241)</i>. Springer, Cham.
+            </li>
+            <li class="popover-item" id="reference_14">
+                He, K., Zhang, X., Ren, S., & Sun, J. (2016). Deep Residual Learning for Image Recognition. In <i>Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition</i> (pp. 770-778).
+            </li>
+            <li class="popover-item" id="reference_15">
+                Red Bull. Downhill MTB GoPro Filmaufnahmen in den schottischen Highlands. <a href=https://youtu.be/igp9sJkuAnU>https://youtu.be/igp9sJkuAnU</a>, last retrieved on 27.08.2021.
+            </li>
+            <li class="popover-item" id="reference_16">
+                Corley, I. VGG Loss. <a href="https://pytorch-enhance.readthedocs.io/en/latest/_modules/torch_enhance/losses/vgg.html">https://pytorch-enhance.readthedocs.io/en/latest/_modules/torch_enhance/losses/vgg.html</a>, last retrieved on 13.06.2021.
+            </li>
+        </ul>
+
+    </div>
+
+</div>
