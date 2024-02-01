@@ -12,10 +12,10 @@
 
         <h2 class="title">My Projects</h2>
 
-        <h6>by Nicolai Skutsch (<a href="mailto:n.skutsch@tu-berlin.de">n.skutsch@tu-berlin.de</a>)</h6>
+        <h6>by Nicolai Skutsch (<a href="mailto:nicolai.skutsch@htw-berlin.de">nicolai.skutsch@htw-berlin.de</a>)</h6>
 
         <div class="row">
-            <p>On this site, you can find a short description of the projects I worked on during my Masters Degree. If you are interested in one of these topics or have any questions, feel free to contact me!</p>
+            <p>On this page, you can find a short description of the projects I have worked on during my master studies. If you are interested in one of these topics or if you have any questions, feel free to contact me!</p>
         </div>
 
     </section>
@@ -31,7 +31,7 @@
 
         <p></p>
 
-        <p>In this project, the main goal was to translate an existing network for image harmonization written in pytorch to Tensorflow. The existing network was a Single Image GAN (SinGAN) which takes only a single image as an input. It was first trained to recreate the original input image from augmented versions of this image and then used after training to harmonize masked regions of the input with the rest of the image texture. The main challenge was to implement the functionalities which are already given in pytorch but were still missing in Tensorflow.</p>
+        <p>The main goal of this project was to translate an existing image harmonization network written in Pytorch to Tensorflow. The existing network was a Single Image GAN (SinGAN), which takes only a single image as an input. It was first trained to recreate the original input image from augmented versions of that image, and then used after training to harmonize masked regions of the input with the rest of the image texture. The main challenge was to implement the functionality that was already available in pytorch but were still missing in Tensorflow.</p>
 
         <p>A full report on this project can be found <a href="image-harmonization/index.html">here</a>.</p>
 
@@ -47,7 +47,7 @@
 
         <p></p>
 
-        <p>In this project, the main goal was to extend an existing network for full-frame video stabilization to improve the performance on hyperlapse videos. The existing network consisted of two different networks: a U-Net which was responsible for calculating a stabilized middle-frame between two frames and a ResNet which was responsible for texture refinements. The network was first trained to generate a new middle frame from the two neighboring frames and a spatially translated pseudo ground truth frame and then used after training to calculate a set of frames with less spatial jitter than the original video. This could be done multiple times iteratively. Since most of the original frames won't be used if the network is applied to a hyperlapse video, I extended the network to use all the frames of the original video and therefore improve the stabilization performance.</p>
+        <p>The main goal of this project was to extend an existing full-frame video stabilization network to improve the performance on hyperlapse videos. The existing network consists of two different networks: a U-Net, which is responsible for computing a stabilized middle-frame between two frames, and a ResNet, which is responsible for texture refinement. The original network was first trained to generate a new middle frame from the two adjacent frames and a spatially translated pseudo ground truth frame, and then used after training to compute a set of frames with less spatial jitter than the original video. This could be done iteratively several times. Since most of the original frames are not used when the network is applied to a hyperlapse video, I extended the network to use all the frames of the original video to improve the stabilization performance.</p>
 
         <p>A full report on this project can be found <a href="hyperlapse-video-stabilization/index.html">here</a>.</p>
 
@@ -63,7 +63,7 @@
 
         <p></p>
 
-        <p>In this project, the main goal was to detect and segment aneurysms in 3D medical images and estimate the risk of a rupture. It was based on the <a href="https://cada.grand-challenge.org/">CADA - Cerebral Aneurysm Detection Challenge</a>. For this purpose, we as a group designed a U-Net and experimented with different pre-processing methods, post-processing methods and model parameters. With the final model, we achieved an F2-score of 0.87.</p>
+        <p>The main goal of this project was to detect and segment aneurysms in 3D medical images and to estimate the risk of a rupture. It was based on the <a href="https://cada.grand-challenge.org/">CADA - Cerebral Aneurysm Detection Challenge</a>. For this purpose, we as a group designed a U-Net and experimented with different pre-processing methods, post-processing methods, and model parameters. With our final model, we achieved an F2-score of 0.87.</p>
 
     </div>
 
